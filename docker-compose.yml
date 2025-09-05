@@ -1,0 +1,61 @@
+version: '3.9'
+services:
+  db:
+    image: postgres:16
+    container_name: barbearia-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: "#abc123#"
+      POSTGRES_DB: barbearia
+      TZ: America/Sao_Paulo
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d barbearia"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+  adminer:
+    image: adminer:4
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    depends_on:
+      - db
+  api:
+    image: node:20-alpine
+    container_name: barbearia-api
+    working_dir: /app
+    volumes:
+      - ./server:/app
+    environment:
+      DATABASE_URL: postgres://postgres:%23abc123%23@db:5432/barbearia
+      PORT: 4000
+      ALLOWED_ORIGIN: http://localhost:5173,http://127.0.0.1:5173,http://localhost:5174
+      ADMIN_TOKEN: admin123
+      SHIFT_START_HOUR: 5
+      TZ: America/Sao_Paulo
+    command: sh -c "npm install && npm start"
+    ports:
+      - "4000:4000"
+    depends_on:
+      db:
+        condition: service_healthy
+  web:
+    image: node:20-alpine
+    container_name: barbearia-web
+    working_dir: /app
+    volumes:
+      - ./barbearia:/app
+    environment:
+      VITE_API_BASE: http://localhost:4000
+      VITE_DEFAULT_SHOP: dersobarbearia
+    command: sh -c "npm install && npm run dev -- --host"
+    ports:
+      - "5173:5173"
+    depends_on:
+      - api
+volumes:
+  db_data:

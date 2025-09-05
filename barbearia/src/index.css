@@ -1,0 +1,15 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html, body, #root {
+    height: 100%;
+  }
+  body {
+    @apply bg-gray-50 text-gray-900 antialiased;
+  }
+  a {
+    @apply text-brand-600 hover:text-brand-700;
+  }
+}
