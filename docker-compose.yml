@@ -24,7 +24,8 @@ services:
     ports:
       - "8080:8080"
     depends_on:
-      - db
+      db:
+        condition: service_healthy
 
   api:
     image: node:20-alpine
@@ -39,14 +40,16 @@ services:
       ADMIN_TOKEN: admin123
       SHIFT_START_HOUR: 5
       TZ: America/Sao_Paulo
-    # Opcional: fazer o container aguardar o Postgres responder a porta
-    # (não precisa de pg_isready):
-    command: sh -c "until nc -z db 5432; do echo 'Aguardando DB...'; sleep 2; done; npm install && npm start"
-    # O busybox do Alpine geralmente tem 'nc'. Se não tiver, troque por 'apk add --no-cache netcat-openbsd'
+      VAPID_PUBLIC_KEY: ""
+      VAPID_PRIVATE_KEY: ""
+      VAPID_CONTACT: "mailto:admin@example.com"
+    command: sh -c "npm ci || npm install && npm run db:init && npm start"
+    restart: unless-stopped
     ports:
       - "4000:4000"
     depends_on:
-      - db
+      db:
+        condition: service_healthy
 
   web:
     image: node:20-alpine
@@ -57,7 +60,8 @@ services:
     environment:
       VITE_API_BASE: http://localhost:4000
       VITE_DEFAULT_SHOP: dersobarbearia
-    command: sh -c "npm install && npm run dev -- --host"
+    command: sh -c "npm ci || npm install && npm run dev -- --host 0.0.0.0"
+    restart: unless-stopped
     ports:
       - "5173:5173"
     depends_on:
@@ -65,3 +69,7 @@ services:
 
 volumes:
   db_data:
+
+
+
+
