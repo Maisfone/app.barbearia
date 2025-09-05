@@ -17,6 +17,7 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+
   adminer:
     image: adminer:4
     restart: unless-stopped
@@ -24,6 +25,7 @@ services:
       - "8080:8080"
     depends_on:
       - db
+
   api:
     image: node:20-alpine
     container_name: barbearia-api
@@ -37,12 +39,15 @@ services:
       ADMIN_TOKEN: admin123
       SHIFT_START_HOUR: 5
       TZ: America/Sao_Paulo
-    command: sh -c "npm install && npm start"
+    # Opcional: fazer o container aguardar o Postgres responder a porta
+    # (não precisa de pg_isready):
+    command: sh -c "until nc -z db 5432; do echo 'Aguardando DB...'; sleep 2; done; npm install && npm start"
+    # O busybox do Alpine geralmente tem 'nc'. Se não tiver, troque por 'apk add --no-cache netcat-openbsd'
     ports:
       - "4000:4000"
     depends_on:
-      db:
-        condition: service_healthy
+      - db
+
   web:
     image: node:20-alpine
     container_name: barbearia-web
@@ -57,5 +62,6 @@ services:
       - "5173:5173"
     depends_on:
       - api
+
 volumes:
-  db_data:
+  db_data: teste
