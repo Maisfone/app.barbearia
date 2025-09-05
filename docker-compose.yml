@@ -64,4 +64,4 @@ services:
       - api
 
 volumes:
-  db_data: teste
+  db_data:
