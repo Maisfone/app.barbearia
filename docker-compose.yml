@@ -24,8 +24,7 @@ services:
     ports:
       - "8080:8080"
     depends_on:
-      db:
-        condition: service_healthy
+      - db
 
   api:
     build: ./server
@@ -44,8 +43,7 @@ services:
     ports:
       - "4000:4000"
     depends_on:
-      db:
-        condition: service_healthy
+      - db
 
   web:
     build: ./barbearia
@@ -57,8 +55,7 @@ services:
     ports:
       - "5173:80"
     depends_on:
-      api:
-        condition: service_started
+      - api
 
   admin:
     build: ./admin
@@ -69,8 +66,7 @@ services:
     ports:
       - "5175:80"
     depends_on:
-      api:
-        condition: service_started
+      - api
 
 volumes:
   db_data:
