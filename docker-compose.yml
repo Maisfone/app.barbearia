@@ -33,12 +33,10 @@ services:
     environment:
       DATABASE_URL: postgres://postgres:%23abc123%23@db:5432/barbearia
       PORT: 4000
-      # Ajuste com o domínio/porta do FRONT/ADMIN em produção
-      ALLOWED_ORIGIN: http://localhost:5173,http://127.0.0.1:5173,http://localhost:5175
+      ALLOWED_ORIGIN: "http://localhost:5173,http://127.0.0.1:5173,http://localhost:5175"
       ADMIN_TOKEN: admin123
-      SHIFT_START_HOUR: 5
+      SHIFT_START_HOUR: "5"
       TZ: America/Sao_Paulo
-      # Web Push (opcional)
       VAPID_PUBLIC_KEY: ""
       VAPID_PRIVATE_KEY: ""
       VAPID_CONTACT: "mailto:admin@example.com"
@@ -56,7 +54,6 @@ services:
       VITE_API_BASE: http://localhost:4000
       VITE_DEFAULT_SHOP: dersobarbearia
     restart: unless-stopped
-    # Em produção com proxy, remova a porta e use apenas o proxy
     ports:
       - "5173:80"
     depends_on:
