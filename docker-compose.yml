@@ -1,6 +1,31 @@
 version: "3.9"
 
+networks:
+  proxy_net:
+    driver: bridge
+  backend_net:
+    driver: bridge
+
+volumes:
+  db_data:
+  npm_data:
+  npm_letsencrypt:
+
 services:
+  proxy:
+    image: jc21/nginx-proxy-manager:latest
+    container_name: npm-proxy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "81:81"            # painel do NPM
+    volumes:
+      - npm_data:/data
+      - npm_letsencrypt:/etc/letsencrypt
+    networks:
+      - proxy_net
+
   db:
     image: postgres:16
     container_name: barbearia-db
@@ -10,7 +35,7 @@ services:
       POSTGRES_DB: barbearia
       TZ: America/Sao_Paulo
     ports:
-      - "5432:5432"
+      - "5432:5432"        # se não precisar acesso externo, pode remover
     volumes:
       - db_data:/var/lib/postgresql/data
     healthcheck:
@@ -18,46 +43,57 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+    networks:
+      - backend_net
     restart: unless-stopped
 
+  # opcional para admin do banco (você pode publicar via proxy com subdomínio)
   adminer:
     image: adminer:4
+    container_name: barbearia-adminer
     restart: unless-stopped
-    ports:
-      - "8080:8080"
-    depends_on:
-      - db
+    environment:
+      TZ: America/Sao_Paulo
+    networks:
+      - backend_net
+      - proxy_net
+    # sem porta local aqui; publique via proxy apontando adminer.seu-dominio para host "adminer" porta 8080
+    expose:
+      - "8080"
 
   api:
     build: ./api
     container_name: barbearia-api
     environment:
+      # Troque para seu subdomínio real na etapa 4 (ex.: https://api.suaempresa.com.br)
+      ALLOWED_ORIGIN: https://SEU_DOMINIO_WEB,https://www.SEU_DOMINIO_WEB
       DATABASE_URL: postgres://postgres:%23abc123%23@db:5432/barbearia
       PORT: 4000
-      ALLOWED_ORIGIN: http://localhost:5173,http://127.0.0.1:5173,http://localhost:5174
       ADMIN_TOKEN: admin123
       SHIFT_START_HOUR: 5
       TZ: America/Sao_Paulo
-    # Espera o Postgres ficar OK, depois inicia
     command: sh -c "apk add --no-cache postgresql16-client >/dev/null 2>&1 || apk add --no-cache postgresql15-client; until pg_isready -h db -p 5432 -U postgres -d barbearia; do echo 'Aguardando DB...'; sleep 2; done; npm start"
-    ports:
-      - "4000:4000"
+    expose:
+      - "4000"             # fica interno; o proxy publica por domínio
     depends_on:
       - db
+    networks:
+      - backend_net
+      - proxy_net
     restart: unless-stopped
 
   web:
     build: ./web
     container_name: barbearia-web
     environment:
-      VITE_API_BASE: http://localhost:4000
+      # Troque para seu subdomínio da API real (ex.: https://api.suaempresa.com.br)
+      VITE_API_BASE: https://API_SEU_DOMINIO
       VITE_DEFAULT_SHOP: dersobarbearia
-    command: ["npm","run","dev","--","--host"]
-    ports:
-      - "5173:5173"
+      TZ: America/Sao_Paulo
+    expose:
+      - "80"               # Nginx servindo estático
     depends_on:
       - api
+    networks:
+      - proxy_net
     restart: unless-stopped
-
-volumes:
-  db_data:
